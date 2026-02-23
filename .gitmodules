@@ -42,3 +42,6 @@
 	path = tools/tblCRCTool
 	url = https://github.com/nasa/tblCRCTool.git
   branch = main
+[submodule "apps/test_app"]
+	path = apps/test_app
+	url = git@github.com:jcvanly/test_app.git
