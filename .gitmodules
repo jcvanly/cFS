@@ -45,3 +45,6 @@
 [submodule "apps/test_app"]
 	path = apps/test_app
 	url = git@github.com:jcvanly/test_app.git
+[submodule "apps/radio_app"]
+	path = apps/radio_app
+	url = git@github.com:jcvanly/radio_app.git
