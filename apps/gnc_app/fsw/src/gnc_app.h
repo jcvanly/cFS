@@ -38,6 +38,8 @@
 #include "gnc_app_msgids.h"
 #include "gnc_app_msg.h"
 
+#include <netinet/in.h>
+
 /************************************************************************
 ** Type Definitions
 *************************************************************************/
@@ -45,6 +47,22 @@
 /*
 ** Global Data
 */
+typedef struct
+{
+    uint64_t TimeNanos;
+    uint64_t SatId;
+    double r_BN_N[3];
+    double v_BN_N[3];
+} GNC_APP_BskNavPacket_t;
+
+typedef struct
+{
+    uint64_t TimeNanos;
+    uint64_t SatId;
+    double force_N[3];
+    double torque_B[3];
+} GNC_APP_BskCmdPacket_t;
+
 typedef struct
 {
     /*
@@ -69,6 +87,17 @@ typedef struct
     CFE_SB_PipeId_t CommandPipe;
 
     CFE_TBL_Handle_t TblHandles[GNC_APP_PLATFORM_NUMBER_OF_TABLES];
+
+    int UdpSocket;
+    uint32 UdpPacketsReceived;
+    uint32 UdpShortPackets;
+
+    GNC_APP_BskNavPacket_t LatestNav;
+    GNC_APP_BskCmdPacket_t LatestCmd;
+
+    struct sockaddr_in BasiliskAddr;
+    uint32 UdpCmdPacketsSent;
+
 } GNC_APP_Data_t;
 
 /*
@@ -85,5 +114,7 @@ extern GNC_APP_Data_t GNC_APP_Data;
 */
 void         GNC_APP_Main(void);
 CFE_Status_t GNC_APP_Init(void);
+void         GNC_APP_ReadUdpNav(void);
+void         GNC_APP_SendBskCmd(void);
 
 #endif /* GNC_APP_H */
