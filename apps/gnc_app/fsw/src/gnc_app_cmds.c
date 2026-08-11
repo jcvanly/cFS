@@ -33,6 +33,22 @@
 #include "gnc_app_utils.h"
 #include "gnc_app_msg.h"
 
+#include "nav_interface_app_fcncode_values.h"
+#include "nav_interface_app_msgids.h"
+
+#include <string.h>
+
+typedef struct
+{
+    CFE_MSG_CommandHeader_t CommandHeader;
+    struct
+    {
+        double ForceX_N;
+        double ForceY_N;
+        double ForceZ_N;
+    } Payload;
+} GNC_APP_NavActuatorReqCmd_t;
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **/
 /*                                                                            */
 /*  Purpose:                                                                  */
@@ -150,4 +166,58 @@ CFE_Status_t GNC_APP_DisplayParamCmd(const GNC_APP_DisplayParamCmd_t *Msg)
                       (int)Msg->Payload.ValI16, Msg->Payload.ValStr);
 
     return CFE_SUCCESS;
+}
+
+CFE_Status_t GNC_APP_IngestNavCmd(const GNC_APP_IngestNavCmd_t *Msg)
+{
+    GNC_APP_Data.LatestNav.TimeNanos = Msg->Payload.TimeNanos;
+    GNC_APP_Data.LatestNav.SatId     = Msg->Payload.SatId;
+
+    GNC_APP_Data.LatestNav.r_BN_N[0] = Msg->Payload.PosX_N;
+    GNC_APP_Data.LatestNav.r_BN_N[1] = Msg->Payload.PosY_N;
+    GNC_APP_Data.LatestNav.r_BN_N[2] = Msg->Payload.PosZ_N;
+
+    GNC_APP_Data.LatestNav.v_BN_N[0] = Msg->Payload.VelX_N;
+    GNC_APP_Data.LatestNav.v_BN_N[1] = Msg->Payload.VelY_N;
+    GNC_APP_Data.LatestNav.v_BN_N[2] = Msg->Payload.VelZ_N;
+
+    GNC_APP_Data.UdpPacketsReceived++;
+
+    return CFE_SUCCESS;
+}
+
+CFE_Status_t GNC_APP_ForceReqCmd(const GNC_APP_ForceReqCmd_t *Msg)
+{
+    CFE_Status_t               Status = CFE_SUCCESS;
+    GNC_APP_NavActuatorReqCmd_t Cmd;
+
+    CFE_EVS_SendEvent(GNC_APP_VALUE_INF_EID,
+                      CFE_EVS_EventType_INFORMATION,
+                      "GNC APP: Force request force=(%.6f %.6f %.6f)",
+                      Msg->Payload.ForceX_N,
+                      Msg->Payload.ForceY_N,
+                      Msg->Payload.ForceZ_N);
+
+    CFE_MSG_Init(CFE_MSG_PTR(Cmd.CommandHeader), CFE_SB_ValueToMsgId(NAV_INTERFACE_APP_CMD_MID), sizeof(Cmd));
+    CFE_MSG_SetFcnCode(CFE_MSG_PTR(Cmd.CommandHeader), NAV_INTERFACE_APP_FunctionCode_FORCE_REQ);
+
+    Cmd.Payload.ForceX_N  = Msg->Payload.ForceX_N;
+    Cmd.Payload.ForceY_N  = Msg->Payload.ForceY_N;
+    Cmd.Payload.ForceZ_N  = Msg->Payload.ForceZ_N;
+
+    Status = CFE_SB_TransmitMsg(CFE_MSG_PTR(Cmd.CommandHeader), true);
+    if (Status == CFE_SUCCESS)
+    {
+        GNC_APP_Data.CmdCounter++;
+    }
+    else
+    {
+        GNC_APP_Data.ErrCounter++;
+        CFE_EVS_SendEvent(GNC_APP_NAV_REQ_ERR_EID,
+                          CFE_EVS_EventType_ERROR,
+                          "GNC APP: Failed to publish actuator request to NAV interface, RC=0x%08lX",
+                          (unsigned long)Status);
+    }
+
+    return Status;
 }

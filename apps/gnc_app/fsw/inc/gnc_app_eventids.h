@@ -38,5 +38,6 @@
 #define GNC_APP_SUB_HK_ERR_EID    10
 #define GNC_APP_SUB_CMD_ERR_EID   11
 #define GNC_APP_TABLE_REG_ERR_EID 12
+#define GNC_APP_NAV_REQ_ERR_EID   13
 
 #endif /* GNC_APP_EVENTS_H */

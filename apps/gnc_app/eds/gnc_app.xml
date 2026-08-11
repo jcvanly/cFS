@@ -43,6 +43,17 @@
         </EntryList>
       </ContainerDataType>
 
+      <ContainerDataType name="SendBsk_Payload" shortDescription="Force and torque command payload for Basilisk">
+        <EntryList>
+          <Entry name="ForceX_N" type="BASE_TYPES/double" />
+          <Entry name="ForceY_N" type="BASE_TYPES/double" />
+          <Entry name="ForceZ_N" type="BASE_TYPES/double" />
+          <Entry name="TorqueX_B" type="BASE_TYPES/double" />
+          <Entry name="TorqueY_B" type="BASE_TYPES/double" />
+          <Entry name="TorqueZ_B" type="BASE_TYPES/double" />
+        </EntryList>
+      </ContainerDataType>
+
       <ContainerDataType name="HkTlm_Payload" shortDescription="Gnc App Housekeeping Content">
         <EntryList>
           <Entry name="CommandCounter" type="BASE_TYPES/uint8" />
@@ -86,6 +97,15 @@
         </ConstraintSet>
         <EntryList>
           <Entry type="DisplayParam_Payload" name="Payload" />
+        </EntryList>
+      </ContainerDataType>
+
+      <ContainerDataType name="SendBskCmd" baseType="CommandBase">
+        <ConstraintSet>
+          <ValueConstraint entry="Sec.FunctionCode" value="4" />
+        </ConstraintSet>
+        <EntryList>
+          <Entry type="SendBsk_Payload" name="Payload" />
         </EntryList>
       </ContainerDataType>
 

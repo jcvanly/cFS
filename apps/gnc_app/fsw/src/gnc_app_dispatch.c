@@ -110,6 +110,20 @@ void GNC_APP_ProcessGroundCommand(const CFE_SB_Buffer_t *SBBufPtr)
             }
             break;
 
+        case GNC_APP_FORCE_REQ_CC:
+            if (GNC_APP_VerifyCmdLength(&SBBufPtr->Msg, sizeof(GNC_APP_ForceReqCmd_t)))
+            {
+                GNC_APP_ForceReqCmd((const GNC_APP_ForceReqCmd_t *)SBBufPtr);
+            }
+            break;
+
+        case GNC_APP_INGEST_NAV_CC:
+            if (GNC_APP_VerifyCmdLength(&SBBufPtr->Msg, sizeof(GNC_APP_IngestNavCmd_t)))
+            {
+                GNC_APP_IngestNavCmd((const GNC_APP_IngestNavCmd_t *)SBBufPtr);
+            }
+            break;
+
         /* default case already found during FC vs length test */
         default:
             CFE_EVS_SendEvent(GNC_APP_CC_ERR_EID, CFE_EVS_EventType_ERROR, "Invalid ground command code: CC = %d",

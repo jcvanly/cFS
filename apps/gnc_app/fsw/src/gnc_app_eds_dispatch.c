@@ -45,7 +45,8 @@ static const EdsDispatchTable_EdsComponent_GNC_APP_Application_CFE_SB_Telecomman
         .NoopCmd_indication          = GNC_APP_NoopCmd,
         .ResetCountersCmd_indication = GNC_APP_ResetCountersCmd,
         .ProcessCmd_indication       = GNC_APP_ProcessCmd,
-        .DisplayParamCmd_indication  = GNC_APP_DisplayParamCmd
+        .DisplayParamCmd_indication  = GNC_APP_DisplayParamCmd,
+        .SendBskCmd_indication       = GNC_APP_ForceReqCmd
     },
     .SEND_HK =
     {

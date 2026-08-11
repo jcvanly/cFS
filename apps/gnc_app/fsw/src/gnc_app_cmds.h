@@ -35,5 +35,7 @@ CFE_Status_t GNC_APP_ResetCountersCmd(const GNC_APP_ResetCountersCmd_t *Msg);
 CFE_Status_t GNC_APP_ProcessCmd(const GNC_APP_ProcessCmd_t *Msg);
 CFE_Status_t GNC_APP_NoopCmd(const GNC_APP_NoopCmd_t *Msg);
 CFE_Status_t GNC_APP_DisplayParamCmd(const GNC_APP_DisplayParamCmd_t *Msg);
+CFE_Status_t GNC_APP_ForceReqCmd(const GNC_APP_ForceReqCmd_t *Msg);
+CFE_Status_t GNC_APP_IngestNavCmd(const GNC_APP_IngestNavCmd_t *Msg);
 
 #endif /* GNC_APP_CMDS_H */

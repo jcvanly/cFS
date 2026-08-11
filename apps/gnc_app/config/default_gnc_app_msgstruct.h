@@ -66,6 +66,18 @@ typedef struct
     GNC_APP_DisplayParam_Payload_t Payload;
 } GNC_APP_DisplayParamCmd_t;
 
+typedef struct
+{
+    CFE_MSG_CommandHeader_t       CommandHeader; /**< \brief Command header */
+    GNC_APP_SendBsk_Payload_t Payload;
+} GNC_APP_ForceReqCmd_t;
+
+typedef struct
+{
+    CFE_MSG_CommandHeader_t         CommandHeader; /**< \brief Command header */
+    GNC_APP_IngestNav_Payload_t Payload;
+} GNC_APP_IngestNavCmd_t;
+
 /*************************************************************************/
 /*
 ** Type definition (Gnc App housekeeping)

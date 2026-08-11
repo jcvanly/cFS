@@ -34,6 +34,25 @@ typedef struct GNC_APP_DisplayParam_Payload
     char   ValStr[GNC_APP_MISSION_STRING_VAL_LEN]; /**< An example string */
 } GNC_APP_DisplayParam_Payload_t;
 
+typedef struct GNC_APP_SendBsk_Payload
+{
+    double ForceX_N;
+    double ForceY_N;
+    double ForceZ_N;
+} GNC_APP_SendBsk_Payload_t;
+
+typedef struct GNC_APP_IngestNav_Payload
+{
+    uint64 TimeNanos;
+    uint64 SatId;
+    double PosX_N;
+    double PosY_N;
+    double PosZ_N;
+    double VelX_N;
+    double VelY_N;
+    double VelZ_N;
+} GNC_APP_IngestNav_Payload_t;
+
 /*************************************************************************/
 /*
 ** Type definition (Gnc App housekeeping)

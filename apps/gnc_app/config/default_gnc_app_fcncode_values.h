@@ -40,6 +40,9 @@ enum GNC_APP_FunctionCode_
     GNC_APP_FunctionCode_RESET_COUNTERS = 1,
     GNC_APP_FunctionCode_PROCESS        = 2,
     GNC_APP_FunctionCode_DISPLAY_PARAM  = 3,
+    GNC_APP_FunctionCode_INGEST_NAV     = 4,
+    GNC_APP_FunctionCode_FORCE_REQ     = 5,
+
 };
 
 #endif

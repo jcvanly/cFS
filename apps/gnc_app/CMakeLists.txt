@@ -20,6 +20,7 @@ endif()
 add_cfe_app(gnc_app ${APP_SRC_FILES})
 
 target_include_directories(gnc_app PUBLIC fsw/inc)
+target_include_directories(gnc_app PRIVATE ../nav_interface/fsw/inc)
 
 # Add table
 add_cfe_tables(gnc_app fsw/tables/gnc_app_tbl.c)
