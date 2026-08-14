@@ -97,21 +97,27 @@ static CFE_Status_t NAV_INTERFACE_APP_ForwardNavToGnc(const NAV_INTERFACE_APP_Bs
 
 static CFE_Status_t NAV_INTERFACE_APP_ForwardNavToAdcs(const NAV_INTERFACE_APP_BskNavPacket_t *Nav)
 {
-    NAV_INTERFACE_APP_AdcsIngestNavCmd_t Cmd;
+    NAV_INTERFACE_APP_NavStateTlm_t Tlm;
 
-    CFE_MSG_Init(CFE_MSG_PTR(Cmd.CommandHeader), CFE_SB_ValueToMsgId(ADCS_APP_CMD_MID), sizeof(Cmd));
-    CFE_MSG_SetFcnCode(CFE_MSG_PTR(Cmd.CommandHeader), ADCS_APP_FunctionCode_INGEST_NAV);
+    CFE_MSG_Init(CFE_MSG_PTR(Tlm.TelemetryHeader), CFE_SB_ValueToMsgId(NAV_INTERFACE_APP_NAV_STATE_TLM_MID), sizeof(Tlm));
 
-    Cmd.Payload.TimeNanos = Nav->TimeNanos;
-    Cmd.Payload.SatId     = Nav->SatId;
-    Cmd.Payload.PosX_N    = Nav->r_BN_N[0];
-    Cmd.Payload.PosY_N    = Nav->r_BN_N[1];
-    Cmd.Payload.PosZ_N    = Nav->r_BN_N[2];
-    Cmd.Payload.VelX_N    = Nav->v_BN_N[0];
-    Cmd.Payload.VelY_N    = Nav->v_BN_N[1];
-    Cmd.Payload.VelZ_N    = Nav->v_BN_N[2];
+    Tlm.Payload.TimeNanos     = Nav->TimeNanos;
+    Tlm.Payload.SatId         = Nav->SatId;
+    Tlm.Payload.PosX_N        = Nav->r_BN_N[0];
+    Tlm.Payload.PosY_N        = Nav->r_BN_N[1];
+    Tlm.Payload.PosZ_N        = Nav->r_BN_N[2];
+    Tlm.Payload.VelX_N        = Nav->v_BN_N[0];
+    Tlm.Payload.VelY_N        = Nav->v_BN_N[1];
+    Tlm.Payload.VelZ_N        = Nav->v_BN_N[2];
+    Tlm.Payload.SigmaX_BN     = Nav->sigma_BN[0];
+    Tlm.Payload.SigmaY_BN     = Nav->sigma_BN[1];
+    Tlm.Payload.SigmaZ_BN     = Nav->sigma_BN[2];
+    Tlm.Payload.OmegaX_BN_B   = Nav->omega_BN_B[0];
+    Tlm.Payload.OmegaY_BN_B   = Nav->omega_BN_B[1];
+    Tlm.Payload.OmegaZ_BN_B   = Nav->omega_BN_B[2];
 
-    return CFE_SB_TransmitMsg(CFE_MSG_PTR(Cmd.CommandHeader), true);
+    CFE_SB_TimeStampMsg(CFE_MSG_PTR(Tlm.TelemetryHeader));
+    return CFE_SB_TransmitMsg(CFE_MSG_PTR(Tlm.TelemetryHeader), true);
 }
 
 /*

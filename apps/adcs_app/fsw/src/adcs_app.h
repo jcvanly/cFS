@@ -44,6 +44,8 @@ typedef struct
     uint64 SatId;
     double r_BN_N[3];
     double v_BN_N[3];
+    double sigma_BN[3];
+    double omega_BN_B[3];
 } ADCS_APP_BskNavPacket_t;
 
 /************************************************************************
@@ -80,6 +82,9 @@ typedef struct
 
     ADCS_APP_BskNavPacket_t LatestNav;
     uint32                  NavPacketsReceived;
+    uint32                  NavStateValid;
+    uint32                  NavStateSequence;
+    uint64                  NavStateTimeNanos;
 } ADCS_APP_Data_t;
 
 /*

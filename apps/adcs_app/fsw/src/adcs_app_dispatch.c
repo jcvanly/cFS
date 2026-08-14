@@ -31,6 +31,9 @@
 #include "adcs_app_msgids.h"
 #include "adcs_app_msg.h"
 
+#include "nav_interface_app_msgids.h"
+#include "nav_interface_app_msg.h"
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **/
 /*                                                                            */
 /* Verify command packet length                                               */
@@ -141,16 +144,18 @@ void ADCS_APP_ProcessGroundCommand(const CFE_SB_Buffer_t *SBBufPtr)
 /* * * * * * * * * * * * * * * * * * * * * * * *  * * * * * * *  * *  * * * * */
 void ADCS_APP_TaskPipe(const CFE_SB_Buffer_t *SBBufPtr)
 {
-    static CFE_SB_MsgId_t CMD_MID     = CFE_SB_MSGID_RESERVED;
-    static CFE_SB_MsgId_t SEND_HK_MID = CFE_SB_MSGID_RESERVED;
+    static CFE_SB_MsgId_t CMD_MID          = CFE_SB_MSGID_RESERVED;
+    static CFE_SB_MsgId_t SEND_HK_MID      = CFE_SB_MSGID_RESERVED;
+    static CFE_SB_MsgId_t NAV_STATE_TLM_MID = CFE_SB_MSGID_RESERVED;
 
     CFE_SB_MsgId_t MsgId = CFE_SB_INVALID_MSG_ID;
 
     /* cache the local MID Values here, this avoids repeat lookups */
     if (!CFE_SB_IsValidMsgId(CMD_MID))
     {
-        CMD_MID     = CFE_SB_ValueToMsgId(ADCS_APP_CMD_MID);
-        SEND_HK_MID = CFE_SB_ValueToMsgId(ADCS_APP_SEND_HK_MID);
+        CMD_MID          = CFE_SB_ValueToMsgId(ADCS_APP_CMD_MID);
+        SEND_HK_MID      = CFE_SB_ValueToMsgId(ADCS_APP_SEND_HK_MID);
+        NAV_STATE_TLM_MID = CFE_SB_ValueToMsgId(NAV_INTERFACE_APP_NAV_STATE_TLM_MID);
     }
 
     CFE_MSG_GetMsgId(&SBBufPtr->Msg, &MsgId);
@@ -165,6 +170,33 @@ void ADCS_APP_TaskPipe(const CFE_SB_Buffer_t *SBBufPtr)
     {
         /* Ground command */
         ADCS_APP_ProcessGroundCommand(SBBufPtr);
+    }
+    else if (CFE_SB_MsgId_Equal(MsgId, NAV_STATE_TLM_MID))
+    {
+        const NAV_INTERFACE_APP_NavStateTlm_t *NavState = (const NAV_INTERFACE_APP_NavStateTlm_t *)SBBufPtr;
+        ADCS_APP_Data.LatestNav.TimeNanos = NavState->Payload.TimeNanos;
+        ADCS_APP_Data.LatestNav.SatId     = NavState->Payload.SatId;
+        ADCS_APP_Data.LatestNav.r_BN_N[0] = NavState->Payload.PosX_N;
+        ADCS_APP_Data.LatestNav.r_BN_N[1] = NavState->Payload.PosY_N;
+        ADCS_APP_Data.LatestNav.r_BN_N[2] = NavState->Payload.PosZ_N;
+        ADCS_APP_Data.LatestNav.v_BN_N[0] = NavState->Payload.VelX_N;
+        ADCS_APP_Data.LatestNav.v_BN_N[1] = NavState->Payload.VelY_N;
+        ADCS_APP_Data.LatestNav.v_BN_N[2] = NavState->Payload.VelZ_N;
+        ADCS_APP_Data.LatestNav.sigma_BN[0] = NavState->Payload.SigmaX_BN;
+        ADCS_APP_Data.LatestNav.sigma_BN[1] = NavState->Payload.SigmaY_BN;
+        ADCS_APP_Data.LatestNav.sigma_BN[2] = NavState->Payload.SigmaZ_BN;
+        ADCS_APP_Data.LatestNav.omega_BN_B[0] = NavState->Payload.OmegaX_BN_B;
+        ADCS_APP_Data.LatestNav.omega_BN_B[1] = NavState->Payload.OmegaY_BN_B;
+        ADCS_APP_Data.LatestNav.omega_BN_B[2] = NavState->Payload.OmegaZ_BN_B;
+        ADCS_APP_Data.NavPacketsReceived++;
+        ADCS_APP_Data.NavStateValid = 1;
+        ADCS_APP_Data.NavStateSequence++;
+        ADCS_APP_Data.NavStateTimeNanos = NavState->Payload.TimeNanos;
+
+        CFE_EVS_SendEvent(ADCS_APP_VALUE_INF_EID, CFE_EVS_EventType_INFORMATION,
+                          "ADCS received NAV state: time=%llu sat=%llu",
+                          (unsigned long long)NavState->Payload.TimeNanos,
+                          (unsigned long long)NavState->Payload.SatId);
     }
     else
     {

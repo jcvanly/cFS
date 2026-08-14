@@ -32,6 +32,9 @@
 #include "adcs_app_tbl.h"
 #include "adcs_app_version.h"
 
+#include "nav_interface_app_msgids.h"
+#include "nav_interface_app_msg.h"
+
 /*
 ** global data
 */
@@ -168,6 +171,16 @@ CFE_Status_t ADCS_APP_Init(void)
         {
             CFE_EVS_SendEvent(ADCS_APP_SUB_CMD_ERR_EID, CFE_EVS_EventType_ERROR,
                               "Adcs App: Error Subscribing to Commands, RC = 0x%08lX", (unsigned long)status);
+        }
+    }
+
+    if (status == CFE_SUCCESS)
+    {
+        status = CFE_SB_Subscribe(CFE_SB_ValueToMsgId(NAV_INTERFACE_APP_NAV_STATE_TLM_MID), ADCS_APP_Data.CommandPipe);
+        if (status != CFE_SUCCESS)
+        {
+            CFE_EVS_SendEvent(ADCS_APP_SUB_HK_ERR_EID, CFE_EVS_EventType_ERROR,
+                              "Adcs App: Error Subscribing to NAV state telemetry, RC = 0x%08lX", (unsigned long)status);
         }
     }
 

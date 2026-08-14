@@ -53,6 +53,8 @@ typedef struct
     uint64 SatId;
     double r_BN_N[3];
     double v_BN_N[3];
+    double sigma_BN[3];
+    double omega_BN_B[3];
 } NAV_INTERFACE_APP_BskNavPacket_t;
 
 typedef struct

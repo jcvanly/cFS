@@ -48,6 +48,24 @@ typedef struct NAV_INTERFACE_APP_TorqueReq_Payload
     double TorqueZ_B;
 } NAV_INTERFACE_APP_TorqueReq_Payload_t;
 
+typedef struct NAV_INTERFACE_APP_NavStateTlm_Payload
+{
+    uint64 TimeNanos;
+    uint64 SatId;
+    double PosX_N;
+    double PosY_N;
+    double PosZ_N;
+    double VelX_N;
+    double VelY_N;
+    double VelZ_N;
+    double SigmaX_BN;
+    double SigmaY_BN;
+    double SigmaZ_BN;
+    double OmegaX_BN_B;
+    double OmegaY_BN_B;
+    double OmegaZ_BN_B;
+} NAV_INTERFACE_APP_NavStateTlm_Payload_t;
+
 /*************************************************************************/
 /*
 ** Type definition (Nav_interface App housekeeping)

@@ -78,6 +78,12 @@ typedef struct
     NAV_INTERFACE_APP_TorqueReq_Payload_t Payload;
 } NAV_INTERFACE_APP_TorqueReqCmd_t;
 
+typedef struct
+{
+    CFE_MSG_TelemetryHeader_t            TelemetryHeader; /**< \brief Telemetry header */
+    NAV_INTERFACE_APP_NavStateTlm_Payload_t Payload;         /**< \brief Nav state payload */
+} NAV_INTERFACE_APP_NavStateTlm_t;
+
 /*************************************************************************/
 /*
 ** Type definition (Nav_interface App housekeeping)
