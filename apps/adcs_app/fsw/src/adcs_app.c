@@ -173,7 +173,7 @@ CFE_Status_t ADCS_APP_Init(void)
                               "Adcs App: Error Subscribing to Commands, RC = 0x%08lX", (unsigned long)status);
         }
     }
-
+    
     if (status == CFE_SUCCESS)
     {
         status = CFE_SB_Subscribe(CFE_SB_ValueToMsgId(NAV_INTERFACE_APP_NAV_STATE_TLM_MID), ADCS_APP_Data.CommandPipe);

@@ -48,6 +48,16 @@ typedef struct
     double omega_BN_B[3];
 } ADCS_APP_BskNavPacket_t;
 
+typedef struct
+{
+    double nadir_N[3];
+    double boresight_N[3];
+    double sigma_BR[3];
+    double omega_BR_B[3];
+    double pointingErrorDeg;
+    bool   valid;
+} ADCS_APP_Guidance_t;
+
 /************************************************************************
 ** Type Definitions
 *************************************************************************/
@@ -81,10 +91,11 @@ typedef struct
     CFE_TBL_Handle_t TblHandles[ADCS_APP_PLATFORM_NUMBER_OF_TABLES];
 
     ADCS_APP_BskNavPacket_t LatestNav;
-    uint32                  NavPacketsReceived;
-    uint32                  NavStateValid;
-    uint32                  NavStateSequence;
-    uint64                  NavStateTimeNanos;
+    ADCS_APP_Guidance_t    Guidance;
+    uint32                 NavPacketsReceived;
+    uint32                 NavStateValid;
+    uint32                 NavStateSequence;
+    uint64                 NavStateTimeNanos;
 } ADCS_APP_Data_t;
 
 /*

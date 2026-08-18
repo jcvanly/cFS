@@ -39,5 +39,6 @@
 #define ADCS_APP_SUB_CMD_ERR_EID   11
 #define ADCS_APP_TABLE_REG_ERR_EID 12
 #define ADCS_APP_NAV_REQ_ERR_EID   13
+#define ADCS_APP_NAV_INF_EID       14
 
 #endif /* ADCS_APP_EVENTS_H */

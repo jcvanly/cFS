@@ -19,6 +19,7 @@ endif()
 # Create the app module
 add_cfe_app(adcs_app ${APP_SRC_FILES})
 
+target_link_libraries(adcs_app m)
 target_include_directories(adcs_app PUBLIC fsw/inc)
 target_include_directories(adcs_app PRIVATE ../nav_interface/fsw/inc)
 
