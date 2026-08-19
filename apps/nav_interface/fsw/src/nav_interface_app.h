@@ -47,17 +47,27 @@
 /*
 ** Global Data
 */
-typedef struct
+#if defined(__GNUC__)
+#define NAV_INTERFACE_APP_PACKED __attribute__((packed))
+#else
+#define NAV_INTERFACE_APP_PACKED
+#endif
+
+typedef struct NAV_INTERFACE_APP_PACKED
 {
     uint64 TimeNanos;
     uint64 SatId;
+    uint32 Sequence;
     double r_BN_N[3];
     double v_BN_N[3];
     double sigma_BN[3];
     double omega_BN_B[3];
 } NAV_INTERFACE_APP_BskNavPacket_t;
 
-typedef struct
+_Static_assert(sizeof(NAV_INTERFACE_APP_BskNavPacket_t) == 116,
+               "NAV_INTERFACE_APP_BskNavPacket_t must match Basilisk UDP NAV layout <QQI12d>");
+
+typedef struct NAV_INTERFACE_APP_PACKED
 {
     uint64 TimeNanos;
     uint64 SatId;

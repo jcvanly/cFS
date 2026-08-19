@@ -340,7 +340,7 @@ CFE_Status_t NAV_INTERFACE_APP_Init(void)
     NAV_INTERFACE_APP_Data.BasiliskAddr.sin_family = AF_INET;
     NAV_INTERFACE_APP_Data.BasiliskAddr.sin_port   = htons(5101);
 
-    if (inet_pton(AF_INET, "192.168.1.100", &NAV_INTERFACE_APP_Data.BasiliskAddr.sin_addr) != 1)
+    if (inet_pton(AF_INET, "10.88.172.243", &NAV_INTERFACE_APP_Data.BasiliskAddr.sin_addr) != 1)
     {
         CFE_EVS_SendEvent(NAV_INTERFACE_APP_UDP_SETUP_ERR_EID, CFE_EVS_EventType_ERROR,
                           "NAV_INTERFACE: Invalid Basilisk IP address");
@@ -353,42 +353,96 @@ CFE_Status_t NAV_INTERFACE_APP_Init(void)
 void NAV_INTERFACE_APP_ReadUdpNav(void)
 {
     NAV_INTERFACE_APP_BskNavPacket_t Packet;
+    NAV_INTERFACE_APP_BskNavPacket_t LatestPacket = {0};
     ssize_t                          Bytes;
     CFE_Status_t                     Status;
+    static uint64                   LastNavTimeNanos = 0ULL;
+    static uint32                   LastNavSequence  = 0U;
+    bool                            GotPacket        = false;
 
-    Bytes = recvfrom(NAV_INTERFACE_APP_Data.UdpSocket, &Packet, sizeof(Packet), 0, NULL, NULL);
-    if (Bytes == (ssize_t)sizeof(Packet))
+    while (1)
     {
-        NAV_INTERFACE_APP_Data.LatestNav = Packet;
-        NAV_INTERFACE_APP_Data.UdpPacketsReceived++;
+        memset(&Packet, 0, sizeof(Packet));
+        Bytes = recvfrom(NAV_INTERFACE_APP_Data.UdpSocket, &Packet, sizeof(Packet), 0, NULL, NULL);
 
-        Status = NAV_INTERFACE_APP_ForwardNavToGnc(&Packet);
-        if (Status != CFE_SUCCESS)
+        if (Bytes == (ssize_t)sizeof(Packet))
         {
-            NAV_INTERFACE_APP_Data.ErrCounter++;
-            CFE_EVS_SendEvent(NAV_INTERFACE_APP_FWD_GNC_ERR_EID, CFE_EVS_EventType_ERROR,
-                              "NAV_INTERFACE: Failed to forward NAV packet to GNC, RC=0x%08lX",
-                              (unsigned long)Status);
+            LatestPacket = Packet;
+            GotPacket    = true;
+            NAV_INTERFACE_APP_Data.UdpPacketsReceived++;
+
+            if (NAV_INTERFACE_APP_Data.UdpPacketsReceived <= 5U ||
+                (NAV_INTERFACE_APP_Data.UdpPacketsReceived % 10U) == 0U)
+            {
+                CFE_EVS_SendEvent(NAV_INTERFACE_APP_INIT_INF_EID, CFE_EVS_EventType_INFORMATION,
+                                  "NAV_INTERFACE: NAV RX sat=%llu seq=%u time=%llu",
+                                  (unsigned long long)Packet.SatId,
+                                  (unsigned int)Packet.Sequence,
+                                  (unsigned long long)Packet.TimeNanos);
+            }
+
+            if ((LastNavTimeNanos != 0ULL) && (Packet.TimeNanos < LastNavTimeNanos))
+            {
+                CFE_EVS_SendEvent(NAV_INTERFACE_APP_UDP_RX_ERR_EID, CFE_EVS_EventType_ERROR,
+                                  "NAV_INTERFACE: NAV time moved backward sat=%llu lastTime=%llu currentTime=%llu",
+                                  (unsigned long long)Packet.SatId,
+                                  (unsigned long long)LastNavTimeNanos,
+                                  (unsigned long long)Packet.TimeNanos);
+            }
+
+            if ((LastNavSequence != 0U) && (Packet.Sequence < LastNavSequence))
+            {
+                CFE_EVS_SendEvent(NAV_INTERFACE_APP_UDP_RX_ERR_EID, CFE_EVS_EventType_ERROR,
+                                  "NAV_INTERFACE: NAV sequence moved backward sat=%llu lastSeq=%u currentSeq=%u",
+                                  (unsigned long long)Packet.SatId,
+                                  (unsigned int)LastNavSequence,
+                                  (unsigned int)Packet.Sequence);
+            }
+
+            LastNavTimeNanos = Packet.TimeNanos;
+            LastNavSequence  = Packet.Sequence;
         }
-
-        Status = NAV_INTERFACE_APP_ForwardNavToAdcs(&Packet);
-        if (Status != CFE_SUCCESS)
+        else if (Bytes > 0)
         {
-            NAV_INTERFACE_APP_Data.ErrCounter++;
-            CFE_EVS_SendEvent(NAV_INTERFACE_APP_FWD_ADCS_ERR_EID, CFE_EVS_EventType_ERROR,
-                              "NAV_INTERFACE: Failed to forward NAV packet to ADCS, RC=0x%08lX",
-                              (unsigned long)Status);
+            NAV_INTERFACE_APP_Data.UdpShortPackets++;
+            CFE_EVS_SendEvent(NAV_INTERFACE_APP_UDP_RX_ERR_EID, CFE_EVS_EventType_ERROR,
+                              "NAV_INTERFACE: Short NAV UDP packet (%ld bytes)", (long)Bytes);
+            break;
+        }
+        else if (Bytes < 0 && (errno == EWOULDBLOCK || errno == EAGAIN))
+        {
+            break;
+        }
+        else if (Bytes < 0)
+        {
+            CFE_EVS_SendEvent(NAV_INTERFACE_APP_UDP_RX_ERR_EID, CFE_EVS_EventType_ERROR,
+                              "NAV_INTERFACE: UDP receive error, errno=%d", errno);
+            break;
         }
     }
-    else if (Bytes > 0)
+
+    if (!GotPacket)
     {
-        NAV_INTERFACE_APP_Data.UdpShortPackets++;
-        CFE_EVS_SendEvent(NAV_INTERFACE_APP_UDP_RX_ERR_EID, CFE_EVS_EventType_ERROR,
-                          "NAV_INTERFACE: Short NAV UDP packet (%ld bytes)", (long)Bytes);
+        return;
     }
-    else if (Bytes < 0 && errno != EWOULDBLOCK && errno != EAGAIN)
+
+    NAV_INTERFACE_APP_Data.LatestNav = LatestPacket;
+
+    Status = NAV_INTERFACE_APP_ForwardNavToGnc(&LatestPacket);
+    if (Status != CFE_SUCCESS)
     {
-        CFE_EVS_SendEvent(NAV_INTERFACE_APP_UDP_RX_ERR_EID, CFE_EVS_EventType_ERROR,
-                          "NAV_INTERFACE: UDP receive error, errno=%d", errno);
+        NAV_INTERFACE_APP_Data.ErrCounter++;
+        CFE_EVS_SendEvent(NAV_INTERFACE_APP_FWD_GNC_ERR_EID, CFE_EVS_EventType_ERROR,
+                          "NAV_INTERFACE: Failed to forward NAV packet to GNC, RC=0x%08lX",
+                          (unsigned long)Status);
+    }
+
+    Status = NAV_INTERFACE_APP_ForwardNavToAdcs(&LatestPacket);
+    if (Status != CFE_SUCCESS)
+    {
+        NAV_INTERFACE_APP_Data.ErrCounter++;
+        CFE_EVS_SendEvent(NAV_INTERFACE_APP_FWD_ADCS_ERR_EID, CFE_EVS_EventType_ERROR,
+                          "NAV_INTERFACE: Failed to forward NAV packet to ADCS, RC=0x%08lX",
+                          (unsigned long)Status);
     }
 }
