@@ -23,7 +23,7 @@
 
 /*
 ** Include Files:
-*/
+*/#include <math.h>
 #include "adcs_app.h"
 #include "adcs_app_cmds.h"
 #include "adcs_app_msgids.h"
@@ -46,6 +46,45 @@ typedef struct
         double TorqueZ_B;
     } Payload;
 } ADCS_APP_NavTorqueReqCmd_t;
+
+CFE_Status_t ADCS_APP_PublishTorque(const double torque_B[3])
+{
+    CFE_Status_t               Status = CFE_SUCCESS;
+    ADCS_APP_NavTorqueReqCmd_t Cmd;
+
+    if ((torque_B == NULL) || (!isfinite(torque_B[0])) || (!isfinite(torque_B[1])) || (!isfinite(torque_B[2])))
+    {
+        CFE_EVS_SendEvent(ADCS_APP_NAV_REQ_ERR_EID, CFE_EVS_EventType_ERROR,
+                          "ADCS APP: rejecting invalid torque request");
+        return CFE_STATUS_BAD_COMMAND_CODE;
+    }
+
+    CFE_MSG_Init(CFE_MSG_PTR(Cmd.CommandHeader), CFE_SB_ValueToMsgId(NAV_INTERFACE_APP_CMD_MID), sizeof(Cmd));
+    CFE_MSG_SetFcnCode(CFE_MSG_PTR(Cmd.CommandHeader), NAV_INTERFACE_APP_FunctionCode_TORQUE_REQ);
+
+    Cmd.Payload.TorqueX_B = torque_B[0];
+    Cmd.Payload.TorqueY_B = torque_B[1];
+    Cmd.Payload.TorqueZ_B = torque_B[2];
+
+    Status = CFE_SB_TransmitMsg(CFE_MSG_PTR(Cmd.CommandHeader), true);
+    if (Status == CFE_SUCCESS)
+    {
+        ADCS_APP_Data.CmdCounter++;
+        CFE_EVS_SendEvent(ADCS_APP_VALUE_INF_EID, CFE_EVS_EventType_INFORMATION,
+                          "ADCS AUTO: published torque sat=%llu torque=[%.6f %.6f %.6f]",
+                          (unsigned long long)ADCS_APP_Data.LatestNav.SatId,
+                          torque_B[0], torque_B[1], torque_B[2]);
+    }
+    else
+    {
+        ADCS_APP_Data.ErrCounter++;
+        CFE_EVS_SendEvent(ADCS_APP_NAV_REQ_ERR_EID, CFE_EVS_EventType_ERROR,
+                          "ADCS APP: Failed to publish torque request to NAV interface, RC=0x%08lX",
+                          (unsigned long)Status);
+    }
+
+    return Status;
+}
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **/
 /*                                                                            */
@@ -187,8 +226,7 @@ CFE_Status_t ADCS_APP_IngestNavCmd(const ADCS_APP_IngestNavCmd_t *Msg)
 
 CFE_Status_t ADCS_APP_TorqueReqCmd(const ADCS_APP_TorqueReqCmd_t *Msg)
 {
-    CFE_Status_t                Status = CFE_SUCCESS;
-    ADCS_APP_NavTorqueReqCmd_t  Cmd;
+    double Torque[3];
 
     CFE_EVS_SendEvent(ADCS_APP_VALUE_INF_EID,
                     CFE_EVS_EventType_INFORMATION,
@@ -197,25 +235,9 @@ CFE_Status_t ADCS_APP_TorqueReqCmd(const ADCS_APP_TorqueReqCmd_t *Msg)
                     Msg->Payload.TorqueY_B,
                     Msg->Payload.TorqueZ_B);
 
-    CFE_MSG_Init(CFE_MSG_PTR(Cmd.CommandHeader), CFE_SB_ValueToMsgId(NAV_INTERFACE_APP_CMD_MID), sizeof(Cmd));
-    CFE_MSG_SetFcnCode(CFE_MSG_PTR(Cmd.CommandHeader), NAV_INTERFACE_APP_FunctionCode_TORQUE_REQ);
+    Torque[0] = Msg->Payload.TorqueX_B;
+    Torque[1] = Msg->Payload.TorqueY_B;
+    Torque[2] = Msg->Payload.TorqueZ_B;
 
-    Cmd.Payload.TorqueX_B = Msg->Payload.TorqueX_B;
-    Cmd.Payload.TorqueY_B = Msg->Payload.TorqueY_B;
-    Cmd.Payload.TorqueZ_B = Msg->Payload.TorqueZ_B;
-
-    Status = CFE_SB_TransmitMsg(CFE_MSG_PTR(Cmd.CommandHeader), true);
-    if (Status == CFE_SUCCESS)
-    {
-        ADCS_APP_Data.CmdCounter++;
-    }
-    else
-    {
-        ADCS_APP_Data.ErrCounter++;
-        CFE_EVS_SendEvent(ADCS_APP_NAV_REQ_ERR_EID, CFE_EVS_EventType_ERROR,
-                          "ADCS APP: Failed to publish torque request to NAV interface, RC=0x%08lX",
-                          (unsigned long)Status);
-    }
-
-    return Status;
+    return ADCS_APP_PublishTorque(Torque);
 }

@@ -96,6 +96,8 @@ typedef struct
     uint32                 NavStateValid;
     uint32                 NavStateSequence;
     uint64                 NavStateTimeNanos;
+    uint64                 LastNavReceivedTimeNanos;
+    bool                   AutoControlEnabled;
 } ADCS_APP_Data_t;
 
 /*

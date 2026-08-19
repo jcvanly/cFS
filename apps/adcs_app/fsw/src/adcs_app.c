@@ -173,7 +173,7 @@ CFE_Status_t ADCS_APP_Init(void)
                               "Adcs App: Error Subscribing to Commands, RC = 0x%08lX", (unsigned long)status);
         }
     }
-    
+
     if (status == CFE_SUCCESS)
     {
         status = CFE_SB_Subscribe(CFE_SB_ValueToMsgId(NAV_INTERFACE_APP_NAV_STATE_TLM_MID), ADCS_APP_Data.CommandPipe);
@@ -207,6 +207,11 @@ CFE_Status_t ADCS_APP_Init(void)
         CFE_EVS_SendEvent(ADCS_APP_INIT_INF_EID, CFE_EVS_EventType_INFORMATION, "Adcs App Initialized.%s",
                           VersionString);
     }
+
+    ADCS_APP_Data.AutoControlEnabled = true;
+    ADCS_APP_Data.LastNavReceivedTimeNanos = 0ULL;
+
+    ADCS_APP_CheckMrpRoundTrip();
 
     return status;
 }

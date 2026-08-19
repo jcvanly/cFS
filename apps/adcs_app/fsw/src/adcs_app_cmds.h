@@ -36,6 +36,7 @@ CFE_Status_t ADCS_APP_ProcessCmd(const ADCS_APP_ProcessCmd_t *Msg);
 CFE_Status_t ADCS_APP_NoopCmd(const ADCS_APP_NoopCmd_t *Msg);
 CFE_Status_t ADCS_APP_DisplayParamCmd(const ADCS_APP_DisplayParamCmd_t *Msg);
 CFE_Status_t ADCS_APP_IngestNavCmd(const ADCS_APP_IngestNavCmd_t *Msg);
+CFE_Status_t ADCS_APP_PublishTorque(const double torque_B[3]);
 CFE_Status_t ADCS_APP_TorqueReqCmd(const ADCS_APP_TorqueReqCmd_t *Msg);
 
 #endif /* ADCS_APP_CMDS_H */

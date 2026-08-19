@@ -33,6 +33,7 @@
 
 void ADCS_APP_TaskPipe(const CFE_SB_Buffer_t *SBBufPtr);
 void ADCS_APP_ProcessGroundCommand(const CFE_SB_Buffer_t *SBBufPtr);
+void ADCS_APP_CheckMrpRoundTrip(void);
 bool ADCS_APP_VerifyCmdLength(const CFE_MSG_Message_t *MsgPtr, size_t ExpectedLength);
 
 #endif /* ADCS_APP_DISPATCH_H */

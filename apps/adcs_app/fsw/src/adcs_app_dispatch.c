@@ -111,80 +111,157 @@ static void ADCS_APP_MrpToDcm(const double sigma[3], double C[3][3])
 static void ADCS_APP_DcmToMrp(double C[3][3], double sigma[3])
 {
     double tr = C[0][0] + C[1][1] + C[2][2];
-    double denom = 1.0 + tr;
 
-    if (denom > 1.0e-12)
+    double b2[4] = {
+        (1.0 + tr) / 4.0,
+        (1.0 + 2.0 * C[0][0] - tr) / 4.0,
+        (1.0 + 2.0 * C[1][1] - tr) / 4.0,
+        (1.0 + 2.0 * C[2][2] - tr) / 4.0
+    };
+
+    /* Protect against tiny negative values from floating-point error. */
+    for (int i = 0; i < 4; ++i)
     {
-        sigma[0] = (C[2][1] - C[1][2]) / denom;
-        sigma[1] = (C[0][2] - C[2][0]) / denom;
-        sigma[2] = (C[1][0] - C[0][1]) / denom;
-        return;
+        if (b2[i] < 0.0 && b2[i] > -1.0e-12)
+        {
+            b2[i] = 0.0;
+        }
     }
 
-    /* Fallback to the standard shadow-safe branch when trace is near -1. */
-    int    idx = 0;
-    double maxdiag = C[0][0];
+    int idx = 0;
+    for (int i = 1; i < 4; ++i)
+    {
+        if (b2[i] > b2[idx])
+        {
+            idx = i;
+        }
+    }
 
-    if (C[1][1] > maxdiag)
-    {
-        maxdiag = C[1][1];
-        idx = 1;
-    }
-    if (C[2][2] > maxdiag)
-    {
-        maxdiag = C[2][2];
-        idx = 2;
-    }
+    double b[4] = {0.0, 0.0, 0.0, 0.0};
 
     switch (idx)
     {
         case 0:
-            denom = 1.0 + C[0][0] - C[1][1] - C[2][2];
-            if (fabs(denom) > 1.0e-12)
+            b[0] = sqrt(b2[0]);
+
+            if (b[0] > 1.0e-12)
             {
-                sigma[0] = (C[0][1] + C[1][0]) / denom;
-                sigma[1] = (C[0][2] + C[2][0]) / denom;
-                sigma[2] = (C[1][2] - C[2][1]) / denom;
-            }
-            else
-            {
-                sigma[0] = 0.0;
-                sigma[1] = 0.0;
-                sigma[2] = 0.0;
+                b[1] = (C[1][2] - C[2][1]) / (4.0 * b[0]);
+                b[2] = (C[2][0] - C[0][2]) / (4.0 * b[0]);
+                b[3] = (C[0][1] - C[1][0]) / (4.0 * b[0]);
             }
             break;
 
         case 1:
-            denom = 1.0 - C[0][0] + C[1][1] - C[2][2];
-            if (fabs(denom) > 1.0e-12)
+            b[1] = sqrt(b2[1]);
+
+            if (b[1] > 1.0e-12)
             {
-                sigma[0] = (C[0][1] + C[1][0]) / denom;
-                sigma[1] = (C[1][2] + C[2][1]) / denom;
-                sigma[2] = (C[2][0] - C[0][2]) / denom;
+                b[0] = (C[1][2] - C[2][1]) / (4.0 * b[1]);
+
+                if (b[0] < 0.0)
+                {
+                    b[0] = -b[0];
+                    b[1] = -b[1];
+                }
+
+                b[2] = (C[0][1] + C[1][0]) / (4.0 * b[1]);
+                b[3] = (C[2][0] + C[0][2]) / (4.0 * b[1]);
             }
-            else
+            break;
+
+        case 2:
+            b[2] = sqrt(b2[2]);
+
+            if (b[2] > 1.0e-12)
             {
-                sigma[0] = 0.0;
-                sigma[1] = 0.0;
-                sigma[2] = 0.0;
+                b[0] = (C[2][0] - C[0][2]) / (4.0 * b[2]);
+
+                if (b[0] < 0.0)
+                {
+                    b[0] = -b[0];
+                    b[2] = -b[2];
+                }
+
+                b[1] = (C[0][1] + C[1][0]) / (4.0 * b[2]);
+                b[3] = (C[1][2] + C[2][1]) / (4.0 * b[2]);
             }
             break;
 
         default:
-            denom = 1.0 - C[0][0] - C[1][1] + C[2][2];
-            if (fabs(denom) > 1.0e-12)
+            b[3] = sqrt(b2[3]);
+
+            if (b[3] > 1.0e-12)
             {
-                sigma[0] = (C[2][0] - C[0][2]) / denom;
-                sigma[1] = (C[1][2] + C[2][1]) / denom;
-                sigma[2] = (C[2][0] + C[0][2]) / denom;
-            }
-            else
-            {
-                sigma[0] = 0.0;
-                sigma[1] = 0.0;
-                sigma[2] = 0.0;
+                b[0] = (C[0][1] - C[1][0]) / (4.0 * b[3]);
+
+                if (b[0] < 0.0)
+                {
+                    b[0] = -b[0];
+                    b[3] = -b[3];
+                }
+
+                b[1] = (C[2][0] + C[0][2]) / (4.0 * b[3]);
+                b[2] = (C[1][2] + C[2][1]) / (4.0 * b[3]);
             }
             break;
+    }
+
+    double denom = 1.0 + b[0];
+
+    if (fabs(denom) <= 1.0e-12)
+    {
+        sigma[0] = 0.0;
+        sigma[1] = 0.0;
+        sigma[2] = 0.0;
+        return;
+    }
+
+    sigma[0] = b[1] / denom;
+    sigma[1] = b[2] / denom;
+    sigma[2] = b[3] / denom;
+}
+
+void ADCS_APP_CheckMrpRoundTrip(void)
+{
+    const double Inputs[7][3] = {
+        {0.0, 0.0, 0.0},
+        {0.1, 0.0, 0.0},
+        {0.0, 0.2, 0.0},
+        {0.0, 0.0, -0.3},
+        {0.3, -0.2, 0.1},
+        {0.9, 0.0, 0.0},
+        {0.95, -0.8, 0.1}
+    };
+
+    for (int i = 0; i < 7; ++i)
+    {
+        double C1[3][3];
+        double C2[3][3];
+        double sigma2[3];
+        double err = 0.0;
+
+        ADCS_APP_MrpToDcm(Inputs[i], C1);
+        ADCS_APP_DcmToMrp(C1, sigma2);
+        ADCS_APP_MrpToDcm(sigma2, C2);
+
+        for (int r = 0; r < 3; ++r)
+        {
+            for (int c = 0; c < 3; ++c)
+            {
+                double d = C2[r][c] - C1[r][c];
+                err += d * d;
+            }
+        }
+        err = sqrt(err);
+
+        if (err > 1.0e-8)
+        {
+            CFE_EVS_SendEvent(ADCS_APP_NAV_INF_EID, CFE_EVS_EventType_ERROR,
+                              "ADCS MRP round-trip error: input=[%.6f %.6f %.6f] output=[%.6f %.6f %.6f] dcmErr=%.12f",
+                              Inputs[i][0], Inputs[i][1], Inputs[i][2],
+                              sigma2[0], sigma2[1], sigma2[2], err);
+        }
     }
 }
 
@@ -345,6 +422,89 @@ static void ADCS_APP_ComputeNadirPointingError(void)
     ADCS_APP_ComputeNadirGuidance();
 }
 
+static void ADCS_APP_AutonomousControlUpdate(void)
+{
+    static uint32_t AutoEventCounter = 0;
+    double          Torque[3] = {0.0, 0.0, 0.0};
+    double          RawTorque[3] = {0.0, 0.0, 0.0};
+    double          MaxTorque = 0.10;
+    double          K = 0.25;
+    double          P = 5.0;
+    double          Deadband = 1.0e-3;
+
+    if (!ADCS_APP_Data.AutoControlEnabled)
+    {
+        return;
+    }
+
+    if (!ADCS_APP_Data.NavStateValid)
+    {
+        if ((AutoEventCounter++ % 25U) == 0U)
+        {
+            CFE_EVS_SendEvent(ADCS_APP_VALUE_INF_EID, CFE_EVS_EventType_INFORMATION,
+                              "ADCS AUTO: NAV invalid, commanding zero torque");
+        }
+
+        ADCS_APP_PublishTorque(Torque);
+        return;
+    }
+
+    if (!ADCS_APP_Data.Guidance.valid || !isfinite(ADCS_APP_Data.Guidance.pointingErrorDeg) ||
+        !isfinite(ADCS_APP_Data.Guidance.sigma_BR[0]) || !isfinite(ADCS_APP_Data.Guidance.omega_BR_B[0]))
+    {
+        if ((AutoEventCounter++ % 25U) == 0U)
+        {
+            CFE_EVS_SendEvent(ADCS_APP_VALUE_INF_EID, CFE_EVS_EventType_INFORMATION,
+                              "ADCS AUTO: invalid guidance, commanding zero torque");
+        }
+
+        ADCS_APP_PublishTorque(Torque);
+        return;
+    }
+
+    RawTorque[0] = -K * ADCS_APP_Data.Guidance.sigma_BR[0] - P * ADCS_APP_Data.Guidance.omega_BR_B[0];
+    RawTorque[1] = -K * ADCS_APP_Data.Guidance.sigma_BR[1] - P * ADCS_APP_Data.Guidance.omega_BR_B[1];
+    RawTorque[2] = -K * ADCS_APP_Data.Guidance.sigma_BR[2] - P * ADCS_APP_Data.Guidance.omega_BR_B[2];
+
+    for (int i = 0; i < 3; ++i)
+    {
+        Torque[i] = RawTorque[i];
+
+        if (!isfinite(Torque[i]))
+        {
+            Torque[i] = 0.0;
+        }
+        if (fabs(Torque[i]) < Deadband)
+        {
+            Torque[i] = 0.0;
+        }
+        else if (Torque[i] > MaxTorque)
+        {
+            Torque[i] = MaxTorque;
+        }
+        else if (Torque[i] < -MaxTorque)
+        {
+            Torque[i] = -MaxTorque;
+        }
+    }
+
+    if ((AutoEventCounter++ % 20U) == 0U)
+    {
+        CFE_EVS_SendEvent(ADCS_APP_VALUE_INF_EID, CFE_EVS_EventType_INFORMATION,
+                          "ADCS AUTO: sat=%llu errorDeg=%.3f rawTorque=[%.6f %.6f %.6f] clampedTorque=[%.6f %.6f %.6f] sigma_BR=[%.6f %.6f %.6f] omega_BR_B=[%.6f %.6f %.6f] nadir_N=[%.6f %.6f %.6f] boresight_N=[%.6f %.6f %.6f]",
+                          (unsigned long long)ADCS_APP_Data.LatestNav.SatId,
+                          ADCS_APP_Data.Guidance.pointingErrorDeg,
+                          RawTorque[0], RawTorque[1], RawTorque[2],
+                          Torque[0], Torque[1], Torque[2],
+                          ADCS_APP_Data.Guidance.sigma_BR[0], ADCS_APP_Data.Guidance.sigma_BR[1], ADCS_APP_Data.Guidance.sigma_BR[2],
+                          ADCS_APP_Data.Guidance.omega_BR_B[0], ADCS_APP_Data.Guidance.omega_BR_B[1], ADCS_APP_Data.Guidance.omega_BR_B[2],
+                          ADCS_APP_Data.Guidance.nadir_N[0], ADCS_APP_Data.Guidance.nadir_N[1], ADCS_APP_Data.Guidance.nadir_N[2],
+                          ADCS_APP_Data.Guidance.boresight_N[0], ADCS_APP_Data.Guidance.boresight_N[1], ADCS_APP_Data.Guidance.boresight_N[2]);
+    }
+
+    ADCS_APP_PublishTorque(Torque);
+}
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **/
 /*                                                                            */
 /* Verify command packet length                                               */
@@ -503,8 +663,10 @@ void ADCS_APP_TaskPipe(const CFE_SB_Buffer_t *SBBufPtr)
         ADCS_APP_Data.NavStateValid = 1;
         ADCS_APP_Data.NavStateSequence++;
         ADCS_APP_Data.NavStateTimeNanos = NavState->Payload.TimeNanos;
+        ADCS_APP_Data.LastNavReceivedTimeNanos = NavState->Payload.TimeNanos;
 
         ADCS_APP_ComputeNadirPointingError();
+        ADCS_APP_AutonomousControlUpdate();
 
         CFE_EVS_SendEvent(ADCS_APP_VALUE_INF_EID, CFE_EVS_EventType_INFORMATION,
                           "ADCS received NAV state: time=%llu sat=%llu",
